@@ -4,12 +4,20 @@ def compare_sentiment(text):
 
     text_lower = text.lower()
 
-    for word in positive_words:
-        if word in text_lower:
-            return 'positive'
+    has_positive = any(word in text_lower for word in positive_words)
+    has_negative = any(word in text_lower for word in negative_words)
 
-    for word in negative_words:
-        if word in text_lower:
-            return 'negative'
+    # Если есть и положительные, и отрицательные слова - возвращаем neutral
+    if has_positive and has_negative:
+        return 'neutral'
 
+    # Если только положительные
+    if has_positive:
+        return 'positive'
+
+    # Если только отрицательные
+    if has_negative:
+        return 'negative'
+
+    # Если ничего не найдено
     return 'neutral'
