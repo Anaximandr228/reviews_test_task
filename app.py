@@ -3,6 +3,7 @@ from datetime import datetime
 from flask import Flask, jsonify, request
 from create_db import init_db
 from storage import get_db_connection, insert_review
+from utils import compare_sentiment
 
 app = Flask(__name__)
 
@@ -10,23 +11,6 @@ app = Flask(__name__)
 def get_db():
     con = sqlite3.connect("rewiews.db")
     return con
-
-
-def compare_sentiment(text):
-    positive_words = ['хорош', 'любл']
-    negative_words = ['плох', 'ненавиж']
-
-    text_lower = text.lower()
-
-    for word in positive_words:
-        if word in text_lower:
-            return 'positive'
-
-    for word in negative_words:
-        if word in text_lower:
-            return 'negative'
-
-    return 'neutral'
 
 
 @app.route('/reviews', methods=['POST'])
