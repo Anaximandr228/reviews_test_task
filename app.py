@@ -2,7 +2,7 @@ import sqlite3
 from datetime import datetime
 from flask import Flask, jsonify, request
 from create_db import init_db
-
+from storage import get_db_connection, insert_review
 
 app = Flask(__name__)
 
@@ -28,6 +28,7 @@ def compare_sentiment(text):
 
     return 'neutral'
 
+
 @app.route('/reviews', methods=['POST'])
 def create_review():
     data = request.get_json()
@@ -39,52 +40,32 @@ def create_review():
     sentiment = compare_sentiment(text)
     created_at = datetime.utcnow().isoformat()
 
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute(
-        'INSERT INTO reviews (text, sentiment, created_at) VALUES (?, ?, ?)',
-        (text, sentiment, created_at)
-    )
-    review_id = cursor.lastrowid
-    conn.commit()
+    con = get_db_connection()
+    try:
+        review_id = insert_review(con, text, sentiment, created_at)
 
-    review = {
-        'id': review_id,
-        'text': text,
-        'sentiment': sentiment,
-        'created_at': created_at
-    }
+        review = {
+            'id': review_id,
+            'text': text,
+            'sentiment': sentiment,
+            'created_at': created_at
+        }
 
-    conn.close()
-    return jsonify(review), 201
+        return jsonify(review), 201
+    finally:
+        con.close()
 
 
 @app.route('/reviews', methods=['GET'])
 def get_reviews():
     sentiment_filter = request.args.get('sentiment')
 
-    con = get_db()
-    cursor = con.cursor()
-
-    if sentiment_filter:
-        cursor.execute(
-            'SELECT id, text, sentiment, created_at FROM reviews WHERE sentiment = ?',
-            (sentiment_filter,)
-        )
-    else:
-        cursor.execute('SELECT id, text, sentiment, created_at FROM reviews')
-
-    reviews = []
-    for row in cursor.fetchall():
-        reviews.append({
-            'id': row[0],
-            'text': row[1],
-            'sentiment': row[2],
-            'created_at': row[3]
-        })
-
-    con.close()
-    return jsonify(reviews)
+    conn = get_db_connection()
+    try:
+        reviews = get_reviews(conn, sentiment_filter)
+        return jsonify(reviews)
+    finally:
+        conn.close()
 
 
 if __name__ == '__main__':
